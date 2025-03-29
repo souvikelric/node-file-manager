@@ -11,7 +11,9 @@ const MAX_VISIBLE_ITEMS = 10; // Max items visible in the list at a time
 const KeyBindings: React.FC = () => (
   <Box
     borderStyle="single"
-    padding={1}
+    height={3}
+    display="flex"
+    alignItems="center"
     flexDirection="row"
     justifyContent="space-around"
   >
@@ -27,10 +29,11 @@ const StatusBar = ({ files, folders }: { files: number; folders: number }) => {
     <Box
       borderStyle="single"
       borderColor="magentaBright"
-      padding={1}
       display="flex"
       flexDirection="row"
+      alignItems="center"
       gap={1}
+      paddingLeft={1}
     >
       <Text>Files : {files}</Text>
       <Text>Folders : {folders}</Text>
@@ -149,7 +152,7 @@ const FileExplorer: React.FC = () => {
               }
             >
               {index + scrollOffset === selectedIndex ? "➤ " : "  "}
-              {file} {index} {selectedIndex}
+              {file}
             </Text>
           );
         })}
