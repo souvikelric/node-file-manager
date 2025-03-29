@@ -24,7 +24,14 @@ const KeyBindings: React.FC = () => (
 
 const StatusBar = ({ files, folders }: { files: number; folders: number }) => {
   return (
-    <Box display="flex" flexDirection="row" gap={1}>
+    <Box
+      borderStyle="single"
+      borderColor="magentaBright"
+      padding={1}
+      display="flex"
+      flexDirection="row"
+      gap={1}
+    >
       <Text>Files : {files}</Text>
       <Text>Folders : {folders}</Text>
     </Box>
