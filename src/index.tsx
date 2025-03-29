@@ -22,15 +22,52 @@ const KeyBindings: React.FC = () => (
   </Box>
 );
 
+const StatusBar = ({ files, folders }: { files: number; folders: number }) => {
+  return (
+    <Box display="flex" flexDirection="row" gap={1}>
+      <Text>Files : {files}</Text>
+      <Text>Folders : {folders}</Text>
+    </Box>
+  );
+};
+
 const FileExplorer: React.FC = () => {
   const { exit } = useApp();
   const [currentPath, setCurrentPath] = useState<string>(process.cwd());
   const [files, setFiles] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [scrollOffset, setScrollOffset] = useState<number>(0);
+  const [filesNum, setFilesNum] = useState<number>(0);
+  const [foldersNum, setFoldersNum] = useState<number>(0);
+
+  const countFilesAndFolders = (pspath: string | undefined = undefined) => {
+    try {
+      if (!currentPath) return;
+      let allFiles = pspath
+        ? fs.readdirSync(pspath)
+        : fs.readdirSync(currentPath);
+      let files = 0;
+      let folders = 0;
+      let nowPath = pspath ?? currentPath;
+      allFiles.forEach((af) => {
+        let filePath = path.join(nowPath, af);
+        if (!fs.statSync(filePath)) return;
+        if (fs.statSync(filePath).isDirectory()) {
+          folders++;
+        } else {
+          files++;
+        }
+      });
+      setFilesNum(files);
+      setFoldersNum(folders);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     updateFileList();
+    countFilesAndFolders();
   }, [currentPath]);
 
   const updateFileList = () => {
@@ -69,6 +106,7 @@ const FileExplorer: React.FC = () => {
       }
       if (fs.statSync(fullPath).isDirectory()) {
         setCurrentPath(fullPath);
+        countFilesAndFolders(fullPath);
       }
     } else if (key.backspace || key.delete) {
       let parentpath = path.dirname(currentPath);
@@ -109,6 +147,7 @@ const FileExplorer: React.FC = () => {
           );
         })}
       </Box>
+      <StatusBar files={filesNum} folders={foldersNum} />
       <KeyBindings />
     </Box>
   );
