@@ -5,7 +5,6 @@ import path from "path";
 import { execSync } from "child_process";
 
 console.clear();
-console.log();
 
 const MAX_VISIBLE_ITEMS = 10; // Max items visible in the list at a time
 
@@ -62,7 +61,12 @@ const FileExplorer: React.FC = () => {
     } else if (key.return) {
       console.clear();
       const selectedFile = files[selectedIndex];
+      if (!selectedFile) return;
       const fullPath = path.join(currentPath, selectedFile);
+      if (!fs.statSync(fullPath).isDirectory()) {
+        console.error("Error: File no longer exists");
+        return;
+      }
       if (fs.statSync(fullPath).isDirectory()) {
         setCurrentPath(fullPath);
       }
@@ -81,18 +85,29 @@ const FileExplorer: React.FC = () => {
   );
 
   return (
-    <Box flexDirection="column">
+    <Box padding={1} flexDirection="column">
       <Text color="cyan">📂 {currentPath}</Text>
       <Box borderStyle="single" flexDirection="column" padding={1}>
-        {visibleFiles.map((file, index) => (
-          <Text
-            key={file}
-            color={index + scrollOffset === selectedIndex ? "green" : "white"}
-          >
-            {index + scrollOffset === selectedIndex ? "➤ " : "  "}
-            {file} {index} {selectedIndex}
-          </Text>
-        ))}
+        {visibleFiles.map((file, index) => {
+          const fullPath = path.join(currentPath, file);
+          const isDirectory =
+            fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory();
+          return (
+            <Text
+              key={file}
+              color={
+                index + scrollOffset === selectedIndex
+                  ? "green"
+                  : isDirectory
+                  ? "yellowBright"
+                  : "white"
+              }
+            >
+              {index + scrollOffset === selectedIndex ? "➤ " : "  "}
+              {file} {index} {selectedIndex}
+            </Text>
+          );
+        })}
       </Box>
       <KeyBindings />
     </Box>
