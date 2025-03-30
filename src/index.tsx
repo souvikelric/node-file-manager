@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { render, Box, Text, useApp, useInput } from "ink";
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import { exec, execSync } from "child_process";
 
-console.clear();
+// console.clear();
 
 const MAX_VISIBLE_ITEMS = 10; // Max items visible in the list at a time
 
@@ -76,9 +76,22 @@ const FileExplorer: React.FC = () => {
   };
 
   useEffect(() => {
+    process.stdout.write("\x1b[?1049h"); // Switch to alternate screen
+    return () => {
+      process.stdout.write("\x1b[?1049l"); // Restore original screen on exit
+      console.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    clearScreen();
     updateFileList();
     countFilesAndFolders();
   }, [currentPath]);
+
+  const clearScreen = () => {
+    process.stdout.write("\x1B[2J\x1B[H"); // 🔹 ANSI escape sequence to clear screen
+  };
 
   const updateFileList = () => {
     try {
@@ -106,7 +119,6 @@ const FileExplorer: React.FC = () => {
         setScrollOffset((prev) => prev + 1);
       }
     } else if (key.return) {
-      console.clear();
       const selectedFile = files[selectedIndex];
       if (!selectedFile) return;
       const fullPath = path.join(currentPath, selectedFile);
@@ -122,7 +134,6 @@ const FileExplorer: React.FC = () => {
       let parentpath = path.dirname(currentPath);
       setCurrentPath(parentpath);
     } else if (input === "q") {
-      console.clear();
       exit();
     }
   });
@@ -133,9 +144,14 @@ const FileExplorer: React.FC = () => {
   );
 
   return (
-    <Box padding={1} flexDirection="column">
+    <Box width="100%" height="100%" paddingTop={2} flexDirection="column">
       <Text color="cyan">📂 {currentPath}</Text>
-      <Box borderStyle="single" flexDirection="column" padding={1}>
+      <Box
+        borderStyle="single"
+        flexDirection="column"
+        padding={0.5}
+        height={MAX_VISIBLE_ITEMS + 2}
+      >
         {visibleFiles.map((file, index) => {
           const fullPath = path.join(currentPath, file);
           const isDirectory =
