@@ -75,10 +75,10 @@ const FileExplorer: React.FC = () => {
         try {
           stats = fs.lstatSync(filePath);
           if (stats.isSymbolicLink()) {
-            return;
+            fs.readlinkSync(filePath);
           }
         } catch (e) {
-          // console.log(e);
+          console.log(e);
           return;
         }
         if (stats && stats.isDirectory()) {
@@ -91,7 +91,7 @@ const FileExplorer: React.FC = () => {
       setFoldersNum(folders);
       let nowSize = calculateSize(currentPath);
       let nowString = formatSize(nowSize);
-      setTotalSize(`${nowString}`);
+      setTotalSize(`${nowString} ${currentPath}`);
     } catch (e) {
       return;
     }

@@ -6,6 +6,14 @@ export const calculateSize = (folderPath: string, totalSize: number = 0) => {
   const allFiles = fs.readdirSync(folderPath);
   allFiles.forEach((file) => {
     const filePath = path.join(folderPath, file);
+    let stat = fs.lstatSync(filePath);
+    if (stat.isSymbolicLink()) {
+      try {
+        fs.statSync(filePath);
+      } catch (e) {
+        console.error(e);
+      }
+    }
     if (fs.statSync(filePath).isDirectory()) {
       totalSize += calculateSize(filePath);
     } else {
