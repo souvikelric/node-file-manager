@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { render, Box, Text, useApp, useInput } from "ink";
 import fs from "fs";
 import path from "path";
-import { exec, execSync } from "child_process";
+import { calculateSize, formatSize } from "./utils.js";
 
 // console.clear();
 
@@ -18,13 +18,21 @@ const KeyBindings: React.FC = () => (
     justifyContent="space-around"
   >
     <Text>[↑/↓] Navigate</Text>
-    <Text>[Enter] Open</Text>
+    <Text>[Enter] Open Folder</Text>
     <Text>[Delete / Backspace] Go Back</Text>
     <Text>[Q] Quit</Text>
   </Box>
 );
 
-const StatusBar = ({ files, folders }: { files: number; folders: number }) => {
+const StatusBar = ({
+  files,
+  folders,
+  size,
+}: {
+  files: number;
+  folders: number;
+  size: string;
+}) => {
   return (
     <Box
       borderStyle="single"
@@ -35,8 +43,10 @@ const StatusBar = ({ files, folders }: { files: number; folders: number }) => {
       gap={1}
       paddingLeft={1}
     >
+      <Text color="yellowBright">Current Folder Stats : </Text>
       <Text>Files : {files}</Text>
       <Text>Folders : {folders}</Text>
+      <Text>Total Size : {size}</Text>
     </Box>
   );
 };
@@ -49,20 +59,29 @@ const FileExplorer: React.FC = () => {
   const [scrollOffset, setScrollOffset] = useState<number>(0);
   const [filesNum, setFilesNum] = useState<number>(0);
   const [foldersNum, setFoldersNum] = useState<number>(0);
+  const [totalSize, setTotalSize] = useState<string>("");
+  // const currentPathRef = useRef(currentPath);
 
-  const countFilesAndFolders = (pspath: string | undefined = undefined) => {
+  const countFilesAndFolders = () => {
     try {
-      if (!currentPath) return;
-      let allFiles = pspath
-        ? fs.readdirSync(pspath)
-        : fs.readdirSync(currentPath);
+      if (!fs.existsSync(currentPath)) return;
+      let allFiles = fs.readdirSync(currentPath);
       let files = 0;
       let folders = 0;
-      let nowPath = pspath ?? currentPath;
       allFiles.forEach((af) => {
-        let filePath = path.join(nowPath, af);
-        if (!fs.statSync(filePath)) return;
-        if (fs.statSync(filePath).isDirectory()) {
+        let filePath = path.join(currentPath, af);
+        if (!fs.existsSync(filePath)) return;
+        let stats;
+        try {
+          stats = fs.lstatSync(filePath);
+          if (stats.isSymbolicLink()) {
+            return;
+          }
+        } catch (e) {
+          // console.log(e);
+          return;
+        }
+        if (stats && stats.isDirectory()) {
           folders++;
         } else {
           files++;
@@ -70,8 +89,11 @@ const FileExplorer: React.FC = () => {
       });
       setFilesNum(files);
       setFoldersNum(folders);
+      let nowSize = calculateSize(currentPath);
+      let nowString = formatSize(nowSize);
+      setTotalSize(`${nowString}`);
     } catch (e) {
-      console.error(e);
+      return;
     }
   };
 
@@ -84,7 +106,6 @@ const FileExplorer: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    clearScreen();
     updateFileList();
     countFilesAndFolders();
   }, [currentPath]);
@@ -119,20 +140,30 @@ const FileExplorer: React.FC = () => {
         setScrollOffset((prev) => prev + 1);
       }
     } else if (key.return) {
-      const selectedFile = files[selectedIndex];
-      if (!selectedFile) return;
-      const fullPath = path.join(currentPath, selectedFile);
-      if (!fs.statSync(fullPath).isDirectory()) {
-        console.error("Error: File no longer exists");
-        return;
-      }
-      if (fs.statSync(fullPath).isDirectory()) {
-        setCurrentPath(fullPath);
-        countFilesAndFolders(fullPath);
+      try {
+        const selectedFile = files[selectedIndex];
+        if (!selectedFile) return;
+        const fullPath = path.join(currentPath, selectedFile);
+        if (!fs.existsSync(fullPath) || fs.lstatSync(fullPath).isFile()) {
+          return;
+        }
+        if (fs.lstatSync(fullPath).isDirectory()) {
+          setCurrentPath(fullPath);
+          // countFilesAndFolders(fullPath);
+        }
+      } catch (error) {
+        console.log("From here", error);
+        // return;
       }
     } else if (key.backspace || key.delete) {
-      let parentpath = path.dirname(currentPath);
-      setCurrentPath(parentpath);
+      try {
+        let parentpath = path.dirname(currentPath);
+        if (currentPath !== parentpath && fs.existsSync(parentpath)) {
+          setCurrentPath(parentpath);
+        }
+      } catch (err) {
+        console.log("From backspace", err);
+      }
     } else if (input === "q") {
       exit();
     }
@@ -154,8 +185,13 @@ const FileExplorer: React.FC = () => {
       >
         {visibleFiles.map((file, index) => {
           const fullPath = path.join(currentPath, file);
-          const isDirectory =
-            fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory();
+          let isDirectory = false;
+          try {
+            isDirectory =
+              fs.existsSync(fullPath) && fs.lstatSync(fullPath).isDirectory();
+          } catch (e) {
+            console.log(e);
+          }
           return (
             <Text
               key={file}
@@ -173,7 +209,7 @@ const FileExplorer: React.FC = () => {
           );
         })}
       </Box>
-      <StatusBar files={filesNum} folders={foldersNum} />
+      <StatusBar files={filesNum} folders={foldersNum} size={totalSize} />
       <KeyBindings />
     </Box>
   );
