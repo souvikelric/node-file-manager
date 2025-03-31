@@ -106,6 +106,7 @@ const FileExplorer: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    clearScreen();
     updateFileList();
     countFilesAndFolders();
   }, [currentPath]);
@@ -149,11 +150,10 @@ const FileExplorer: React.FC = () => {
         }
         if (fs.lstatSync(fullPath).isDirectory()) {
           setCurrentPath(fullPath);
-          // countFilesAndFolders(fullPath);
         }
       } catch (error) {
-        console.log("From here", error);
-        // return;
+        // console.log("From here", error);
+        return;
       }
     } else if (key.backspace || key.delete) {
       try {
